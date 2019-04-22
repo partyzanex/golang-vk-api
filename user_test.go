@@ -17,7 +17,7 @@ func TestVKClient_UsersGet(t *testing.T) {
 		t.Fatalf("creating vk client failed: %s", err)
 	}
 
-	users, err := vk.UsersGet("294110051", "antony_goroni")
+	users, err := vk.UsersGet("antony_goroni")
 	if err != nil {
 		t.Fatalf("getting users failed: %s", err)
 	}
