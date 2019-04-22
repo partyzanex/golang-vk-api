@@ -30,9 +30,11 @@ func (client *VKClient) ResolveScreenName(name string) (ResolveScreenName, error
 }
 
 func ArrayToStr(a []int) string {
-	s := []string{}
-	for _, num := range a {
-		s = append(s, strconv.Itoa(num))
+	s := make([]string, len(a))
+
+	for i, num := range a {
+		s[i] = strconv.Itoa(num)
 	}
+
 	return strings.Join(s, ",")
 }

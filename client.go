@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 )
 
 const (
@@ -16,21 +15,10 @@ const (
 	apiURL   = "https://api.vk.com/method/%s"
 )
 
-const (
-	DeviceIPhone = iota
-	DeviceWPhone
-	DeviceAndroid
-)
-
-type ratelimiter struct {
-	requestsCount   int
-	lastRequestTime time.Time
-}
-
 type VKClient struct {
 	Self   Token
 	Client *http.Client
-	rl     *ratelimiter
+	rl     *rateLimiter
 	cb     *callbackHandler
 }
 
@@ -42,47 +30,47 @@ type TokenOptions struct {
 func newVKClientBlank() *VKClient {
 	return &VKClient{
 		Client: &http.Client{},
-		rl:     &ratelimiter{},
+		rl:     &rateLimiter{},
 		cb: &callbackHandler{
 			events: make(map[string]func(*LongPollMessage)),
 		},
 	}
 }
 
-func NewVKClient(device int, user string, password string) (*VKClient, error) {
-	vkclient := newVKClientBlank()
+func NewVKClient(user string, password string, config AuthConfig) (*VKClient, error) {
+	vkClient := newVKClientBlank()
 
-	token, err := vkclient.auth(device, user, password)
+	token, err := vkClient.auth(user, password, config)
 	if err != nil {
 		return nil, err
 	}
 
-	vkclient.Self = token
+	vkClient.Self = token
 
-	return vkclient, nil
+	return vkClient, nil
 }
 
 func NewVKClientWithToken(token string, options *TokenOptions) (*VKClient, error) {
-	vkclient := newVKClientBlank()
-	vkclient.Self.AccessToken = token
+	vkClient := newVKClientBlank()
+	vkClient.Self.AccessToken = token
 
 	if options != nil {
 		if options.ValidateOnStart {
-			uid, err := vkclient.requestSelfID()
+			uid, err := vkClient.requestSelfID()
 			if err != nil {
 				return nil, err
 			}
-			vkclient.Self.UID = uid
+			vkClient.Self.UID = uid
 
 			if !options.ServiceToken {
-				if err := vkclient.updateSelfUser(); err != nil {
+				if err := vkClient.updateSelfUser(); err != nil {
 					return nil, err
 				}
 			}
 		}
 	}
 
-	return vkclient, nil
+	return vkClient, nil
 }
 
 func (client *VKClient) updateSelfUser() error {
@@ -100,27 +88,13 @@ func (client *VKClient) updateSelfUser() error {
 	return nil
 }
 
-func (s *ratelimiter) Wait() {
-	if s.requestsCount == 3 {
-		secs := time.Since(s.lastRequestTime).Seconds()
-		ms := int((1 - secs) * 1000)
-		if ms > 0 {
-			duration := time.Duration(ms * int(time.Millisecond))
-			//fmt.Println("attempted to make more than 3 requests per second, "+
-			//"sleeping for", ms, "ms")
-			time.Sleep(duration)
-		}
-
-		s.requestsCount = 0
-	}
+type AuthConfig struct {
+	ClientID, ClientSecret string
+	GrantType              string
+	Version                string
 }
 
-func (s *ratelimiter) Update() {
-	s.requestsCount++
-	s.lastRequestTime = time.Now()
-}
-
-func (client *VKClient) auth(device int, user string, password string) (Token, error) {
+func (client *VKClient) auth(user string, password string, config AuthConfig) (Token, error) {
 	client.rl.Wait()
 	req, err := http.NewRequest("GET", tokenURL, nil)
 	if err != nil {
@@ -128,31 +102,13 @@ func (client *VKClient) auth(device int, user string, password string) (Token, e
 	}
 	client.rl.Update()
 
-	clientID := ""
-	clientSecret := ""
-
-	switch device {
-	case DeviceIPhone:
-		clientID = "3140623"
-		clientSecret = "VeWdmVclDCtn6ihuP1nt"
-	case DeviceWPhone:
-		clientID = "3697615"
-		clientSecret = "AlVXZFMUqyrnABp8ncuU"
-	case DeviceAndroid:
-		clientID = "2274003"
-		clientSecret = "hHbZxrka2uZ6jB1inYsH"
-	default:
-		clientID = "3140623"
-		clientSecret = "VeWdmVclDCtn6ihuP1nt"
-	}
-
 	q := req.URL.Query()
-	q.Add("grant_type", "password")
-	q.Add("client_id", clientID)
-	q.Add("client_secret", clientSecret)
+	q.Add("grant_type", config.GrantType)
+	q.Add("client_id", config.ClientID)
+	q.Add("client_secret", config.ClientSecret)
 	q.Add("username", user)
 	q.Add("password", password)
-	q.Add("v", "5.40")
+	q.Add("v", config.Version)
 	req.URL.RawQuery = q.Encode()
 
 	client.rl.Wait()
@@ -227,11 +183,11 @@ func (client *VKClient) makeRequest(method string, params url.Values) (APIRespon
 		return APIResponse{}, err
 	}
 
-	var apiresp APIResponse
-	json.Unmarshal(body, &apiresp)
+	var apiResp APIResponse
+	json.Unmarshal(body, &apiResp)
 
-	if apiresp.ResponseError.ErrorCode != 0 {
-		return APIResponse{}, errors.New("Error code: " + strconv.Itoa(apiresp.ResponseError.ErrorCode) + ", " + apiresp.ResponseError.ErrorMsg)
+	if apiResp.ResponseError.ErrorCode != 0 {
+		return APIResponse{}, errors.New("Error code: " + strconv.Itoa(apiResp.ResponseError.ErrorCode) + ", " + apiResp.ResponseError.ErrorMsg)
 	}
-	return apiresp, nil
+	return apiResp, nil
 }

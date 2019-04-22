@@ -79,7 +79,7 @@ func (client *VKClient) photoWallUpload(groupID int, files []string) (*photoWall
 	uploadData := new(photoWallUploadResult)
 	json.Unmarshal(body, uploadData)
 	escaped := strings.Replace(string(uploadData.Photo), "\\", "", -1)
-	escaped = escaped[1 : len(escaped)-1]
+	escaped = escaped[1: len(escaped)-1]
 	uploadData.Photo = []byte(escaped)
 
 	return uploadData, nil
@@ -109,10 +109,10 @@ func (client *VKClient) UploadGroupWallPhotos(groupID int, files []string) ([]*P
 }
 
 func (client *VKClient) GetPhotosString(photos []*PhotoAttachment) string {
-	s := []string{}
+	s := make([]string, len(photos))
 
-	for _, p := range photos {
-		s = append(s, "photo"+strconv.Itoa(p.OwnerID)+"_"+strconv.Itoa(p.ID))
+	for i, p := range photos {
+		s[i] = "photo" + strconv.Itoa(p.OwnerID) + "_" + strconv.Itoa(p.ID)
 	}
 
 	return strings.Join(s, ",")

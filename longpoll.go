@@ -48,7 +48,7 @@ func (client *VKClient) getLongPollServer() (LongPollServer, error) {
 	return server, nil
 }
 
-func (client *VKClient) longpollRequest(server LongPollServer) ([]byte, error) {
+func (client *VKClient) longPollRequest(server LongPollServer) ([]byte, error) {
 	req, err := http.NewRequest("GET", "https://"+server.Server, nil)
 	if err != nil {
 		return nil, err
@@ -91,9 +91,9 @@ func (client *VKClient) ListenLongPollServerWithCancel(cancelCtx context.Context
 		default:
 		}
 
-		body, err := client.longpollRequest(server)
+		body, err := client.longPollRequest(server)
 		if err != nil {
-			log.Println("longpoll request failed: %s", err)
+			log.Printf("longpoll request failed: %s", err)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -150,7 +150,7 @@ func (client *VKClient) ListenLongPollServerWithCancel(cancelCtx context.Context
 		case 2:
 			newSrv, err := client.getLongPollServer()
 			if err != nil {
-				log.Println("failed to get longpoll server for key update: %s", err)
+				log.Printf("failed to get longpoll server for key update: %s", err)
 				continue
 			}
 			server.Key = newSrv.Key
@@ -158,7 +158,7 @@ func (client *VKClient) ListenLongPollServerWithCancel(cancelCtx context.Context
 		case 3:
 			newSrv, err := client.getLongPollServer()
 			if err != nil {
-				log.Println("failed to get longpoll for key/ts update: %s", err)
+				log.Printf("failed to get longpoll for key/ts update: %s", err)
 				continue
 			}
 			server.Key = newSrv.Key

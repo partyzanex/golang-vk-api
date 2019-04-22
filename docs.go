@@ -13,7 +13,7 @@ type DocAttachment struct {
 	OwnerID    int    `json:"owner_id"`
 	Title      string `json:"title"`
 	Size       int    `json:"size"`
-	Extenstion string `json:"ext"`
+	Extension  string `json:"ext"`
 	URL        string `json:"url"`
 	Date       int64  `json:"date"`
 	Type       int    `json:"type"`
@@ -92,10 +92,10 @@ func (client *VKClient) UploadGroupWallDoc(groupID int, fileName string) (*DocAt
 }
 
 func (client *VKClient) GetDocsString(docs []*DocAttachment) string {
-	s := []string{}
+	s := make([]string, len(docs))
 
-	for _, d := range docs {
-		s = append(s, "doc"+strconv.Itoa(d.OwnerID)+"_"+strconv.Itoa(d.ID))
+	for i, d := range docs {
+		s[i] = "doc" + strconv.Itoa(d.OwnerID) + "_" + strconv.Itoa(d.ID)
 	}
 
 	return strings.Join(s, ",")
