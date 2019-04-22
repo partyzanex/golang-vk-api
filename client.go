@@ -2,18 +2,21 @@ package vkapi
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 const (
 	tokenURL = "https://oauth.vk.com/token"
 	apiURL   = "https://api.vk.com/method/%s"
 )
+
+var Version = "5.95"
 
 type VKClient struct {
 	Self   Token
@@ -74,16 +77,16 @@ func NewVKClientWithToken(token string, options *TokenOptions) (*VKClient, error
 }
 
 func (client *VKClient) updateSelfUser() error {
-	me, err := client.UsersGet([]int{client.Self.UID})
+	me, err := client.UsersGet(strconv.Itoa(client.Self.UID))
 	if err != nil {
 		return err
 	}
 
 	client.Self.FirstName = me[0].FirstName
 	client.Self.LastName = me[0].LastName
-	client.Self.PicSmall = me[0].Photo
-	client.Self.PicMedium = me[0].PhotoMedium
-	client.Self.PicBig = me[0].PhotoBig
+	client.Self.PicSmall = me[0].Photo100
+	client.Self.PicMedium = me[0].Photo200
+	client.Self.PicBig = me[0].PhotoMax
 
 	return nil
 }
@@ -160,6 +163,8 @@ func (client *VKClient) requestSelfID() (uid int, err error) {
 }
 
 func (client *VKClient) makeRequest(method string, params url.Values) (APIResponse, error) {
+	var apiResp APIResponse
+
 	client.rl.Wait()
 
 	endpoint := fmt.Sprintf(apiURL, method)
@@ -168,23 +173,20 @@ func (client *VKClient) makeRequest(method string, params url.Values) (APIRespon
 	}
 
 	params.Set("access_token", client.Self.AccessToken)
-	params.Set("v", "5.71")
+	params.Set("v", Version)
 
 	resp, err := client.Client.PostForm(endpoint, params)
 	if err != nil {
 		return APIResponse{}, err
 	}
 	defer resp.Body.Close()
+	defer client.rl.Update()
 
-	client.rl.Update()
-
-	body, err := ioutil.ReadAll(resp.Body)
+	dec := json.NewDecoder(resp.Body)
+	err = dec.Decode(&apiResp)
 	if err != nil {
-		return APIResponse{}, err
+		return apiResp, errors.Wrap(err, "decoding from json failed")
 	}
-
-	var apiResp APIResponse
-	json.Unmarshal(body, &apiResp)
 
 	if apiResp.ResponseError.ErrorCode != 0 {
 		return APIResponse{}, errors.New("Error code: " + strconv.Itoa(apiResp.ResponseError.ErrorCode) + ", " + apiResp.ResponseError.ErrorMsg)
