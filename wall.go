@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 type Wall struct {
@@ -38,11 +40,13 @@ type WallPost struct {
 	Reposts      *Repost              `json:"reposts"`
 	Online       int                  `json:"online"`
 	ReplyCount   int                  `json:"reply_count"`
+	IsFavorite   bool                 `json:"is_favorite"`
 }
 
 type Comment struct {
-	Count   int `json:"count"`
-	CanPost int `json:"can_post"`
+	Count         int  `json:"count"`
+	CanPost       int  `json:"can_post"`
+	GroupsCanPost bool `json:"groups_can_post"`
 }
 
 type Like struct {
@@ -80,7 +84,11 @@ func (client *VKClient) WallGet(id interface{}, count int, params url.Values) (*
 	}
 
 	var wall *Wall
-	json.Unmarshal(resp.Response, &wall)
+
+	err = json.Unmarshal(resp.Response, &wall)
+	if err != nil {
+		return nil, errors.Wrap(err, "unmarshalling failed")
+	}
 
 	return wall, nil
 }
