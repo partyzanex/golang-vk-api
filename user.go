@@ -6,11 +6,12 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"strconv"
 )
 
 //last seen device
 const (
-	_ = iota
+	_               = iota
 	PlatformMobile
 	PlatformIPhone
 	PlatfromIPad
@@ -90,9 +91,24 @@ type LastSeen struct {
 }
 
 type Occupation struct {
-	Type string `json:"type"`
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	Type string     `json:"type"`
+	ID   FloatToInt `json:"id"`
+	Name string     `json:"name"`
+}
+
+type FloatToInt int
+
+func (f *FloatToInt) UnmarshalJSON(b []byte) error {
+	str := string(b)
+	strSlice := strings.Split(str, ".")
+	fl, err := strconv.ParseInt(strSlice[0], 10, 64)
+	if err != nil {
+		return errors.Wrap(err, "cannot parse float")
+	}
+
+	*f = FloatToInt(fl)
+
+	return nil
 }
 
 func (client *VKClient) UsersGet(users ...string) ([]*User, error) {
