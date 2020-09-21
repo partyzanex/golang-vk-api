@@ -19,7 +19,7 @@ var client *VKClient
 
 func TestMain(m *testing.M) {
 	var err error
-	client, err = NewVKClient(DeviceIPhone, testUser, testPassword)
+	client, err = NewVKClient(DeviceIPhone, testUser, testPassword, true)
 	if err != nil {
 		fmt.Println(err)
 		return

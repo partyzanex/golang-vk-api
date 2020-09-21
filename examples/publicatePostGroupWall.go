@@ -3,7 +3,7 @@ package main
 import (
 	"net/url"
 
-	vkapi "github.com/himidori/golang-vk-api"
+	vkapi "github.com/partyzanex/golang-vk-api"
 )
 
 /*
@@ -18,7 +18,7 @@ func publicateToWallbyURL() {
 	var vkToken string
 	var vkGroupID int
 	var urlImage string
-	client, err := vkapi.NewVKClientWithToken(vkToken, &vkapi.TokenOptions{})
+	client, err := vkapi.NewVKClientWithToken(vkToken, &vkapi.TokenOptions{}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +42,7 @@ func publicateToWallbyFile() {
 	var vkToken string
 	var vkGroupID int
 
-	client, err := vkapi.NewVKClientWithToken(vkToken, &vkapi.TokenOptions{})
+	client, err := vkapi.NewVKClientWithToken(vkToken, &vkapi.TokenOptions{}, true)
 	if err != nil {
 		panic(err)
 	}

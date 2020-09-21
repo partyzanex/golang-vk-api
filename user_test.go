@@ -12,12 +12,13 @@ func TestVKClient_UsersGet(t *testing.T) {
 		&vkapi.TokenOptions{
 			ServiceToken: true,
 		},
+		true,
 	)
 	if err != nil {
 		t.Fatalf("creating vk client failed: %s", err)
 	}
 
-	users, err := vk.UsersGet("antony_goroni")
+	users, err := vk.UsersGet([]int{294110051})
 	if err != nil {
 		t.Fatalf("getting users failed: %s", err)
 	}
