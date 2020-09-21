@@ -10,32 +10,8 @@ import (
 	"strconv"
 )
 
-func getFilesSizeMB(files []string) (int, error) {
-	var size int64
-
-	for _, f := range files {
-		file, err := os.Open(f)
-		if err != nil {
-			return 0, err
-		}
-		fi, err := file.Stat()
-		if err != nil {
-			return 0, err
-		}
-
-		size += fi.Size()
-		file.Close()
-	}
-
-	return int(size / 1048576), nil
-}
-
 func (client *VKClient) getPhotoMultipartReq(link string, files []string) (*http.Request, error) {
-	if len(files) > 6 {
-		return nil, errors.New("you can't upload more than 6 photos")
-	}
-
-	size, err := getFilesSizeMB(files)
+	size, err := GetFilesSizeMB(files)
 	if err != nil {
 		return nil, err
 	}
@@ -82,8 +58,39 @@ func (client *VKClient) getPhotoMultipartReq(link string, files []string) (*http
 
 }
 
+func (client *VKClient) getPhotoByLinkMultipartReq(link string, urlFile string) (*http.Request, error) {
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	respGetFile, err := http.Get(urlFile)
+	if err != nil {
+		return nil, err
+	}
+	defer respGetFile.Body.Close()
+
+	part, err := writer.CreateFormFile("file", "file.png")
+	if err != nil {
+		return nil, err
+	}
+	io.Copy(part, respGetFile.Body)
+
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", link, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	return req, nil
+}
+
 func (client *VKClient) getDocMultipartReq(link string, fileName string) (*http.Request, error) {
-	size, err := getFilesSizeMB([]string{fileName})
+	size, err := GetFilesSizeMB([]string{fileName})
 	if err != nil {
 		return nil, err
 	}

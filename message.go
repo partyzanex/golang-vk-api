@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	ActivityTypeTyping   = "typing"
+	ActivityTypeAudioMsg = "audiomessage"
+)
+
 type Dialog struct {
 	Count    int     `json:"count"`
 	Messages []*Item `json:"items"`
@@ -100,34 +105,22 @@ type AudioAttachment struct {
 	Performer string `json:"performer"`
 }
 
-type VideoAttachment struct {
-	ID            int    `json:"id"`
-	OwnerID       int    `json:"owner_id"`
-	Title         string `json:"title"`
-	Duration      int    `json:"duration"`
-	Description   string `json:"description"`
-	Date          int64  `json:"date"`
-	AddingDate    int64  `json:"adding_date"`
-	Views         int    `json:"views"`
-	Width         int    `json:"width"`
-	Height        int    `json:"height"`
-	Photo130      string `json:"photo130"`
-	Photo320      string `json:"photo320"`
-	Photo800      string `json:"photo800"`
-	FirstFrame320 string `json:"first_frame_320"`
-	FirstFrame160 string `json:"first_frame_160"`
-	FirstFrame130 string `json:"first_frame_130"`
-	FirstFrame800 string `json:"first_frame_800"`
-	Player        string `json:"player"`
-	CanEdit       int    `json:"can_edit"`
-	CanAdd        int    `json:"can_add"`
-}
-
 type LinkAttachment struct {
 	URL         string `json:"url"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Target      string `json:"target"`
+}
+
+type Keyboard struct {
+	OneTime 	bool		`json:"one_time"`
+	Buttons		[][]Button 	`json:"buttons"`
+	Inline		bool 		`json:"inline"`
+}
+
+type Button struct {
+	Action		map[string]string	`json:"action"`
+	Color		string				`json:"color"`
 }
 
 func (client *VKClient) DialogsGet(count int, params url.Values) (*Dialog, error) {
@@ -136,7 +129,7 @@ func (client *VKClient) DialogsGet(count int, params url.Values) (*Dialog, error
 	}
 	params.Add("count", strconv.Itoa(count))
 
-	resp, err := client.makeRequest("messages.getDialogs", params)
+	resp, err := client.MakeRequest("messages.getDialogs", params)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +148,7 @@ func (client *VKClient) GetHistoryAttachments(peerID int, mediaType string, coun
 	params.Add("media_type", mediaType)
 	params.Add("peer_id", strconv.Itoa(peerID))
 
-	resp, err := client.makeRequest("messages.getHistoryAttachments", params)
+	resp, err := client.MakeRequest("messages.getHistoryAttachments", params)
 	if err != nil {
 		return nil, err
 	}
@@ -165,13 +158,18 @@ func (client *VKClient) GetHistoryAttachments(peerID int, mediaType string, coun
 	return att, nil
 }
 
-func (client *VKClient) MessagesGet(count int, params url.Values) (int, []*DialogMessage, error) {
+func (client *VKClient) MessagesGet(count int, chatID int, isDialog bool, params url.Values) (int, []*DialogMessage, error) {
 	if params == nil {
 		params = url.Values{}
 	}
+	if isDialog {
+		chatID += 2000000000
+	}
+
+	params.Add("user_id", strconv.Itoa(chatID))
 	params.Add("count", strconv.Itoa(count))
 
-	resp, err := client.makeRequest("messages.get", params)
+	resp, err := client.MakeRequest("messages.getHistory", params)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -189,7 +187,7 @@ func (client *VKClient) MessagesGetByID(message_ids []int, params url.Values) (i
 	s := ArrayToStr(message_ids)
 	params.Add("message_ids", s)
 
-	resp, err := client.makeRequest("messages.getById", params)
+	resp, err := client.MakeRequest("messages.getById", params)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -200,25 +198,25 @@ func (client *VKClient) MessagesGetByID(message_ids []int, params url.Values) (i
 	return message.Count, message.Messages, nil
 }
 
-func (client *VKClient) MessagesSend(user interface{}, message string, params url.Values) error {
+func (client *VKClient) MessagesSend(peerOrDomain interface{}, message string, params url.Values) (APIResponse, error) {
 	if params == nil {
 		params = url.Values{}
 	}
 	params.Add("message", message)
 
-	switch user.(type) {
+	switch peerOrDomain.(type) {
 	case int:
-		params.Add("user_id", strconv.Itoa(user.(int)))
+		params.Add("peer_id", strconv.Itoa(peerOrDomain.(int)))
 	case string:
-		params.Add("domain", user.(string))
+		params.Add("domain", peerOrDomain.(string))
 	}
 
-	_, err := client.makeRequest("messages.send", params)
+	resp, err := client.MakeRequest("messages.send", params)
 	if err != nil {
-		return err
+		return resp, err
 	}
 
-	return nil
+	return resp, nil
 }
 
 func (client *VKClient) MessagesDelete(ids []int, spam int, deleteForAll int) (int, error) {
@@ -228,7 +226,7 @@ func (client *VKClient) MessagesDelete(ids []int, spam int, deleteForAll int) (i
 	params.Add("spam", strconv.Itoa(spam))
 	params.Add("delete_for_all", strconv.Itoa(deleteForAll))
 
-	resp, err := client.makeRequest("messages.delete", params)
+	resp, err := client.MakeRequest("messages.delete", params)
 	if err != nil {
 		return 0, err
 	}
@@ -248,4 +246,19 @@ func (client *VKClient) MessagesDelete(ids []int, spam int, deleteForAll int) (i
 	}
 
 	return delCount, nil
+}
+
+func (client *VKClient) MessagesSetActivity(user int, params url.Values) error {
+	if params == nil {
+		params = url.Values{}
+	}
+
+	params.Add("user_id", strconv.Itoa(user))
+
+	_, err := client.MakeRequest("messages.setActivity", params)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

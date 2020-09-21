@@ -15,7 +15,7 @@ client, err := vkapi.NewVKClient(vkapi.DeviceIPhone, "username", "password")
 ## Authorizing using access token
 
 ```go
-client, err := vkapi.NewVKClientWithToken("token")
+client, err := vkapi.NewVKClientWithToken("token", nil)
 ```
 
 ## Listening longpoll events
@@ -44,6 +44,7 @@ client.AddLongpollCallback("msgread", func(m *vkapi.LongPollMessage) {
 // listening users online
 client.AddLongpollCallback("msgonline", func(m *vkapi.LongPollMessage) {
 	fmt.Printf("user %d is now online\n", m.UserID)
+})
 
 // starting 
 client.ListenLongPollServer()

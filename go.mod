@@ -1,3 +1,3 @@
-module github.com/partyzanex/golang-vk-api
+module github.com/himidori/golang-vk-api
 
-require github.com/pkg/errors v0.8.1
+go 1.12
