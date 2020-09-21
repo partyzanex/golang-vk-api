@@ -1,9 +1,9 @@
 package vkapi_test
 
 import (
-	"testing"
-	"os"
 	"github.com/partyzanex/golang-vk-api"
+	"os"
+	"testing"
 )
 
 func TestVKClient_UsersGet(t *testing.T) {
